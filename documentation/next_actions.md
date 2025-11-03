@@ -29,8 +29,8 @@ This file was moved from the project root `progress.md`. It tracks all tasks for
 These are the next development tasks I will implement and keep updated here. I'll follow this exact checklist and mark items as done as I finish them.
 
 - Client-side rendering and counters
-  - [ ] Ensure the `/compare/[slug]` page's counters are generated only on the client (no SSR of dynamic counters).
-  - [ ] Add tests or a runtime guard to prevent server-side calculation of the animated values.
+  - [x] Ensure the `/compare/[slug]` page's counters are generated only on the client (no SSR of dynamic counters). — Implemented `lib/env.ts` and guarded fetch/RAF in `pages/compare/[slug].tsx`.
+  - [x] Add tests or a runtime guard to prevent server-side calculation of the animated values. — Added `test/client.test.ts` which asserts `isClient` false in Node test environment; ran tests (all pass).
 
 - OG image & sharing
   - [ ] Add an `/api/og/[slug]` endpoint (optional for MVP) to generate share images on demand using `@vercel/og` or Satori.
@@ -69,4 +69,3 @@ These are the next development tasks I will implement and keep updated here. I'l
   - [ ] Improve styling and mobile responsive layout for the compare page.
   - [ ] Add more unit & integration tests (API create + fetch + slug uniqueness).
   - [ ] Add README docs that show how to switch to Supabase/Postgres and enable headshot uploads.
-

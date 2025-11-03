@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
+import { isClient } from '../../lib/env';
 
 function fmt(value: number, currency = 'EUR') {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
@@ -18,7 +19,9 @@ export default function ComparePage() {
   const [displayA, setDisplayA] = useState(0);
   const [displayB, setDisplayB] = useState(0);
 
+  // fetch only on client
   useEffect(() => {
+    if (!isClient) return;
     if (!slug) return;
     fetch(`/api/compare/${slug}`).then((r) => r.json()).then((d) => {
       if (d?.error) return setError(d.error);
@@ -34,7 +37,9 @@ export default function ComparePage() {
     }).catch((e) => setError('Fetch error'));
   }, [slug]);
 
+  // animation loop: only run on client
   useEffect(() => {
+    if (!isClient) return;
     function tick() {
       if (!running) return;
       const now = Date.now();
@@ -92,8 +97,8 @@ export default function ComparePage() {
         <button onClick={toggle}>{running ? 'Pause' : 'Resume'}</button>
         <button onClick={replayLocal}>Replay (local)</button>
         <button onClick={() => {
-          if (navigator.share) navigator.share({ title: `${data.nameA} vs ${data.nameB}`, url: window.location.href });
-          else navigator.clipboard.writeText(window.location.href).then(() => alert('Copied to clipboard'));
+          if (isClient && navigator.share) navigator.share({ title: `${data.nameA} vs ${data.nameB}`, url: window.location.href });
+          else if (isClient) navigator.clipboard.writeText(window.location.href).then(() => alert('Copied to clipboard'));
         }}>Share</button>
       </div>
 
@@ -105,4 +110,3 @@ export default function ComparePage() {
     </main>
   );
 }
-

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { isClient } from '../../lib/env';
 import { prisma } from '../../lib/prisma';
+import CarbonAd from '../../components/CarbonAd';
 
 function fmt(value: number, currency = 'EUR') {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
@@ -134,9 +135,7 @@ export default function ComparePage({ initialData, baseUrl }: { initialData?: an
         </div>
 
         <div style={{ marginTop: 24 }}>
-          <div style={{ border: '1px solid #ddd', padding: 12, minHeight: 90 }}>
-            Carbon Ads placeholder
-          </div>
+          <CarbonAd />
         </div>
       </main>
     </>
@@ -155,5 +154,11 @@ export async function getServerSideProps(context: any) {
   const proto = forwardedProto || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
   const baseUrl = host ? `${proto}://${host}` : process.env.NEXT_PUBLIC_APP_URL || '';
 
-  return { props: { initialData: item, baseUrl } };
+  // Serialize Dates to strings for Next.js
+  const serializable = {
+    ...item,
+    createdAt: item.createdAt instanceof Date ? item.createdAt.toISOString() : item.createdAt,
+  };
+
+  return { props: { initialData: serializable, baseUrl } };
 }

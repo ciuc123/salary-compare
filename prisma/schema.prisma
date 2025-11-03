@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Compare {
@@ -21,4 +21,3 @@ model Compare {
   accumulatedOffsetSeconds Float   @default(0)
   isPaused                 Boolean @default(false)
 }
-

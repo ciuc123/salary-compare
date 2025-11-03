@@ -1,6 +1,18 @@
-# Headshot Feature — spec and implementation notes
+# Sometime — Headshots, Ads, and Deployment Notes
 
-This document describes the "headshot" optional feature: allow users to upload a headshot for Person A and/or Person B, fall back to DiceBear-generated initials avatars, and include uploaded images in OG generation.
+This single document collects the deferred/occasional features, ad-network notes (Carbon archived), Google AdSense configuration, and a concrete Vercel deployment checklist so you can deploy the current progress now.
+
+Contents
+- Headshot feature spec (upload + storage)
+- Carbon Ads (archived notes)
+- Google AdSense quick integration & config (active)
+- Vercel deployment checklist and deploy-now steps
+
+---
+
+## Headshot Feature — spec and implementation notes (archive)
+
+This describes the optional headshot feature: allow users to upload a headshot for Person A and/or Person B, fall back to DiceBear-generated initials avatars, and include uploaded images in OG generation.
 
 Goals
 - Let users optionally upload a headshot for Person A / Person B in the create flow.
@@ -36,94 +48,159 @@ model Compare {
   headshotB                String?
 }
 
-Implementation roadmap
+Implementation roadmap (summary)
+- Backend: signed upload URL endpoint `/api/upload-url`
+- Frontend: file inputs on create form -> request signed URL -> PUT file -> include returned public URL in `/api/create`
+- Store headshot URLs in DB and prefer headshot over DiceBear when rendering
+- Use headshots in OG generation when available (fetch and embed)
 
-1) Backend: signed upload URL endpoint
-- `POST /api/upload-url`
-  - Body: { filename: string, contentType: string }
-  - Server validates contentType and filename (simple sanitization) and returns signed upload URL + public URL or key to store in DB.
-  - For Supabase: use the Supabase Admin SDK (service role key) to create a signed upload URL or pre-signed PUT.
-  - For S3: use AWS SDK `getSignedUrl('putObject', ...)`.
+Supabase/S3 examples and validation notes are documented in the project `documentation/sometimes.md` archive and earlier notes.
 
-2) Frontend: create form changes
-- Add two file inputs (optional) to `pages/index.tsx` for headshotA and headshotB.
-- When a user picks a file:
-  - Validate size and type client-side.
-  - Request a signed URL from `/api/upload-url`.
-  - PUT the file to the signed URL.
-  - Get the returned public URL or key and include it in the subsequent `/api/create` request as `headshotA` / `headshotB`.
-- Provide a preview area that shows DiceBear avatar by default and replaces it with the uploaded preview when available.
+---
 
-3) Backend: accept headshot URL at create time
-- Modify `POST /api/create` to accept optional `headshotA` and `headshotB` fields (string). Store them in the DB if provided.
-- Ensure the URL is sanitized and/or limited to your storage domain(s) (e.g., supabase bucket domain) to avoid users passing arbitrary external URLs.
+## Carbon Ads notes (archived)
 
-4) Compare page: prefer uploaded headshots
-- If `headshotA` exists and is accessible, render it in an <img> (with appropriate width/height and object-fit).
-- Otherwise, render the DiceBear initials URL.
+The project previously included Carbon integration notes. Carbon is a curated ad network and requires a dashboard placement/serve id and approval; those instructions were moved from the repo root into this doc when we pivoted to AdSense. The important points:
 
-5) OG generation: include headshots
-- When generating OG images server-side (if you implement `/api/og/[slug]`), fetch the headshot images to rasterize them into the generated image.
-- If you store OG images (generate-once), embed the headshot into the saved OG.
+- Carbon requires obtaining a placement/serve id from carbonads.net.
+- You must inject Carbon's script client-side and provide the expected container markup.
+- Ad blockers and domain/approval issues can prevent ads from serving.
 
-Supabase example (server-side)
+(If you want Carbon later, the original snippet and example component exist earlier in repo history and in the archive section.)
 
-- Install `@supabase/supabase-js` on the server and set `SUPABASE_SERVICE_ROLE_KEY` in server env.
-- Example pseudo-code for `/api/upload-url` (server):
+---
 
-```ts
-import { createClient } from '@supabase/supabase-js';
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+## Google AdSense — quick integration & config
 
-export default async function handler(req, res) {
-  const { filename, contentType } = req.body;
-  // validate contentType
-  const bucket = 'headshots';
-  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(filename, 60);
-  if (error) return res.status(500).json({ error: error.message });
-  return res.json({ uploadUrl: data.signedUrl, publicUrl: `https://YOUR_SUPABASE_DOMAIN/storage/v1/object/public/${bucket}/${filename}` });
-}
+We're moving to Google AdSense as the active ad integration (simpler approval and broad coverage).
+
+How AdSense works (short)
+- Create an AdSense publisher account and verify your site.
+- Obtain your publisher id (format `ca-pub-xxxxxxxxxxxxxxxx`).
+- Optionally create ad units (slot ids) in AdSense; for responsive auto ads you may only need the publisher id.
+
+What the project includes
+- `components/AdSense.tsx` is a client-only React component that:
+  - injects the AdSense script tag with `data-ads-client` (publisher id),
+  - inserts an `ins.adsbygoogle` element with optional slot id and responsive attributes,
+  - calls `(adsbygoogle = window.adsbygoogle || []).push({})` to request ad rendering.
+
+Local dev notes
+- AdSense often does not serve real ads on `localhost`. Use a public preview URL (Vercel preview deploy) and add that domain to your AdSense account if necessary.
+- For development you can temporarily set the ins attribute `data-adtest="on"` (test mode) to see placeholder ads. Don't leave test mode in production.
+
+Environment variables (recommended)
+- NEXT_PUBLIC_ADSENSE_CLIENT — your publisher ID, e.g. `ca-pub-xxxxxxxxxxxxxxxx` (client-visible so component can read it)
+- NEXT_PUBLIC_ADSENSE_SLOT — optional slot/ad unit id
+
+Snippet usage (example)
+- The component inserts this script in the document head:
+
+```html
+<script async data-ads-client="ca-pub-XXXXXXXXXXXX" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
 ```
 
-For direct uploads you may prefer `createSignedUploadUrl` or create a presigned POST policy depending on your provider.
+and this block where you want the ad:
 
-S3 example (server-side)
-
-```ts
-import AWS from 'aws-sdk';
-const s3 = new AWS.S3({ region: process.env.S3_REGION, credentials: { accessKeyId: process.env.S3_ACCESS_KEY_ID!, secretAccessKey: process.env.S3_SECRET_ACCESS_KEY! } });
-
-export default async function handler(req, res) {
-  const { filename, contentType } = req.body;
-  const params = { Bucket: process.env.S3_BUCKET!, Key: filename, Expires: 60, ContentType: contentType };
-  const uploadUrl = await s3.getSignedUrlPromise('putObject', params);
-  const publicUrl = `https://${process.env.S3_BUCKET}.s3.${process.env.S3_REGION}.amazonaws.com/${encodeURIComponent(filename)}`;
-  return res.json({ uploadUrl, publicUrl });
-}
+```html
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-XXXXXXXXXXXX"
+     data-ad-slot="1234567890"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 ```
 
-Client-side notes
-- Use `fetch(uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })` for the upload.
-- Show progress with `fetch` + `ReadableStream` or use XHR for progress events (optional).
+Privacy & policy notes
+- AdSense enforces strict policy: no incentivized clicks, valid content, no disallowed content.
+- Update privacy policy if you enable third-party ads and cookies.
 
-Validation & tests
-- Tests to add:
-  - Unit tests for server-side upload URL generation (mock storage SDKs).
-  - Integration test: simulate file selection and ensure the signed URL is returned, the file PUT succeeds (mocked), and `/api/create` accepts the returned publicUrl and stores it in DB.
-  - Edge cases: oversized file, invalid mime-type, expired signed URL.
+Testing & verification
+- Use Vercel preview URLs for testing. After you set `NEXT_PUBLIC_ADSENSE_CLIENT` in Vercel, preview deploy the branch and check the compare page.
+- Use the browser console to make sure the script loads and `adsbygoogle` is present.
 
-Vercel considerations
-- Do not write files to the Next.js server or filesystem. Use storage providers.
-- Keep the service-role key secret in server env vars. Use server-only endpoints to sign uploads.
+---
 
-Privacy & moderation
-- Consider adding a manual moderation queue or anomaly detection for uploaded images if this becomes popular.
-- Strip EXIF (location metadata) from images on upload to protect user privacy.
+## Vercel deployment checklist (deploy NOW)
 
-Rollout plan
-- Phase 1 (MVP): DiceBear avatars only, preview on create form (fast, zero infra).
-- Phase 2: Optional headshot uploads with Supabase signed-upload flow, store public URL in DB.
-- Phase 3: OG generation includes headshots and stored OG images for caching.
+This is a concrete checklist to deploy the current project to Vercel now, using a production Postgres (Supabase recommended). Follow the steps below, then I will provide follow up changes and instructions after you commit.
 
+1) Choose a production database
+- Supabase (recommended): quick Postgres DB + Storage for headshots (if you later enable uploads).
+- Alternative: Neon, Heroku Postgres, PlanetScale (MySQL), or other managed Postgres.
+
+2) Create the database and get `DATABASE_URL`
+- For Supabase: create a project and copy the connection string (a Postgres URL).
+- Set `DATABASE_URL` in your Vercel project Environment Variables (Production scope).
+
+3) Set required Vercel env vars
+- `DATABASE_URL` — Postgres connection string
+- `NEXT_PUBLIC_APP_URL` — e.g. `https://your-deploy-url.vercel.app` (used for OG absolute links)
+- `NEXT_PUBLIC_ADSENSE_CLIENT` — your AdSense publisher id (e.g., `ca-pub-...`) (optional until you have it)
+- `NEXT_PUBLIC_ADSENSE_SLOT` — optional ad unit slot
+- If you later add uploads via Supabase:
+  - `SUPABASE_URL`
+  - `SUPABASE_ANON_KEY` (client) and `SUPABASE_SERVICE_ROLE_KEY` (server-only)
+
+4) Prepare Prisma migrations for production
+- Locally: with `DATABASE_URL` set to your production DB, run:
+
+```bash
+npx prisma migrate deploy
+```
+
+- Alternatively add a CI step that runs migrations on deploy using `npx prisma migrate deploy`.
+
+5) Build and deploy on Vercel
+- Connect the repo to Vercel and configure the project.
+- Ensure `NODE_VERSION` is set to 20+ if needed.
+- Deploy (Vercel will run `npm install` and `npm run build`).
+
+6) Post-deploy checks
+- Run migrations if not run automatically (`npx prisma migrate deploy` with production `DATABASE_URL`).
+- Visit `/compare/<some-slug>` and confirm the page loads and renders client-side counters.
+- Check `/progress` to verify documentation renders.
+
+7) Add AdSense keys in Vercel if you want ads to show
+- Add `NEXT_PUBLIC_ADSENSE_CLIENT` and `NEXT_PUBLIC_ADSENSE_SLOT` in Vercel dashboard.
+- Redeploy or trigger a new build to ensure those env vars are available to the client.
+
+8) Optional: store OG images and headshots
+- If you plan to persist generated OG images or headshots, create a Supabase Storage bucket or S3 bucket and set credentials in Vercel env vars.
+- Update `generateOgSvg` workflow to upload generated images and store the public URL in the Compare record.
+
+9) Monitoring and analytics
+- Add simple health checks (e.g., `/api/health` returning 200) and add them to uptime monitoring.
+- Add an analytics endpoint (e.g., `/api/analytics`) if you want to collect impression counts or time-on-page beacons.
+
+---
+
+## Quick deploy commands (local developer flow)
+
+1. Install deps & generate prisma client (if not done):
+
+```bash
+npm install
+npx prisma generate
+```
+
+2. With production `DATABASE_URL` set locally (or in CI), run:
+
+```bash
+npx prisma migrate deploy
+npm run build
+npm run start
+```
+
+3. For Vercel: push branch and open a Preview/Production deploy via Vercel UI. Set env vars in the Vercel dashboard.
+
+---
+
+## After you commit
+- Tell me which Desired next action to pick up first (recommended: Ad UX & resilience).
+- I'll implement ad-block detection + fallback CTA + impression beacon and add tests, then give a step-by-step Vercel deployment command list and verification steps.
+
+---
 
 

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { isClient } from '../../lib/env';
 import { prisma } from '../../lib/prisma';
-import CarbonAd from '../../components/CarbonAd';
+import AdSense from '../../components/AdSense';
 
 function fmt(value: number, currency = 'EUR') {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 2 }).format(value);
@@ -135,7 +135,7 @@ export default function ComparePage({ initialData, baseUrl }: { initialData?: an
         </div>
 
         <div style={{ marginTop: 24 }}>
-          <CarbonAd />
+          <AdSense />
         </div>
       </main>
     </>

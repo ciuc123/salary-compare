@@ -1,8 +1,14 @@
-# Carbon Ads integration (quick start)
+# Deprecated: `documentation/sometimes.md`
 
-This project includes a placeholder component for Carbon Ads. Carbon Ads requires a script from their dashboard.
+This file was merged into `documentation/sometime.md` (single consolidated doc).
 
-Steps to integrate Carbon Ads into Next.js:
+Please view `documentation/sometime.md` for headshot, ad notes (Carbon archived), AdSense config, and Vercel deployment checklist.
+
+---
+
+## Carbon Ads notes (moved here)
+
+The project originally included a `CARBON_README.md` which is now archived here. Carbon Ads requires a script from their dashboard and a placement/serve id. Below is the quick-start guidance (previously in `CARBON_README.md`):
 
 1. Get your Carbon Ads script snippet from https://carbonads.net/ (they provide a script + a div container).
 
@@ -29,11 +35,7 @@ export default function CarbonAd() {
 }
 ```
 
-3. Add the component between or below the counters. To refresh the ad every X seconds, you can unmount/remount the component (toggle a key) or clear and re-append the script.
-
 Caveats
 - Ad blockers may hide Carbon Ads during development. Test with adblock disabled.
 - Carbon's policies and script may change; follow their dashboard instructions.
 - Consider privacy and GDPR compliance depending on your audience.
-
-

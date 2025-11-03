@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
+import Avatar from '../components/Avatar';
 
 export default function Home() {
   const [nameA, setNameA] = useState('Alex');
@@ -29,6 +30,16 @@ export default function Home() {
   return (
     <main style={{ padding: 20, fontFamily: 'system-ui, sans-serif' }}>
       <h1>Salary Compare</h1>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ textAlign: 'center' }}>
+          <Avatar name={nameA} size={80} />
+          <div style={{ marginTop: 8 }}>{nameA}</div>
+        </div>
+        <div style={{ textAlign: 'center' }}>
+          <Avatar name={nameB} size={80} />
+          <div style={{ marginTop: 8 }}>{nameB}</div>
+        </div>
+      </div>
       <form onSubmit={submit} style={{ display: 'grid', gap: 8, maxWidth: 480 }}>
         <label>
           Name A
@@ -51,4 +62,3 @@ export default function Home() {
     </main>
   );
 }
-

@@ -127,6 +127,22 @@ npx prisma migrate deploy
    - If `npx prisma migrate deploy` errors on Vercel: run it locally (Option A) with the production DATABASE_URL. It's often easier to run migrations from a trusted machine.
    - If the Compare page shows 'Loading...' indefinitely, check that `/api/compare/<slug>` returns 200 on production and that the `dev.db` is not being used (ensure `DATABASE_URL` points to Postgres and not SQLite).
    - Use `vercel logs <deployment-url>` or the Vercel UI logs for function errors.
+   - If you see a Prisma error P2021 (table missing) or `Unable to open the database file`:
+     - Preferred: run Prisma migrations against your production DB:
+
+```bash
+# ensure DATABASE_URL points to your production DB
+npx prisma generate
+npx prisma migrate deploy
+```
+
+     - If migrations are not yet available and you need an urgent fix, run the SQL fallback located at `scripts/create_compare_table.sql` against your Postgres DB (example):
+
+```bash
+psql "$DATABASE_URL" -f scripts/create_compare_table.sql
+```
+
+     - After applying migrations or SQL, re-deploy if necessary and re-run the smoke checks.
 
 9) Linking Vercel to a GitHub Pages subdomain / domain
 

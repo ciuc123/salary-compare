@@ -35,7 +35,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     return res.status(201).json({ slug: created.slug, url: `/compare/${created.slug}` });
   } catch (err: any) {
-    console.error(err);
+    console.error('Create error', err);
+    // Prisma error when table doesn't exist in DB
+    if (err?.code === 'P2021') {
+      return res.status(500).json({
+        error: 'Database schema mismatch: required table is missing (P2021). Run your Prisma migrations against the configured DATABASE_URL (e.g. `npx prisma migrate deploy`). See documentation.',
+        hint: 'If you just deployed, run `npx prisma migrate deploy` with the production DATABASE_URL, or run `npx prisma migrate dev` locally to generate migrations.'
+      });
+    }
     return res.status(500).json({ error: 'Failed to create' });
   }
 }

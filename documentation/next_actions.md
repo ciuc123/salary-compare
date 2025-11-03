@@ -128,8 +128,52 @@ npx prisma migrate deploy
    - If the Compare page shows 'Loading...' indefinitely, check that `/api/compare/<slug>` returns 200 on production and that the `dev.db` is not being used (ensure `DATABASE_URL` points to Postgres and not SQLite).
    - Use `vercel logs <deployment-url>` or the Vercel UI logs for function errors.
 
-9) Post-deploy housekeeping
-   - After successful deploy and verification, add monitoring (Sentry/Logflare) and set up a migration/backup schedule for your production DB.
+9) Linking Vercel to a GitHub Pages subdomain / domain
+
+If you currently host some site on GitHub Pages and want to point a subdomain or a custom domain to your Vercel deployment, follow the instructions below depending on your situation.
+
+A — You have a custom domain (example.com) currently used by GitHub Pages and want a subdomain for Vercel (e.g. app.example.com)
+1. Add the domain in Vercel
+   - In the Vercel dashboard for your project, go to Settings → Domains → Add.
+   - Enter the subdomain you want to use (for example: app.example.com) and click "Add".
+2. Update DNS at your domain registrar / DNS provider
+   - For a subdomain (recommended): create a CNAME record for `app` that points to the domain Vercel shows in the dashboard (usually `cname.vercel-dns.com` or the alias provided by Vercel during verification).
+     - Example: Host/Name: app → Type: CNAME → Value: cname.vercel-dns.com
+   - If Vercel provides a specific target (it will show it during domain add), use that exactly.
+3. Verify the domain in Vercel
+   - Vercel will detect the DNS change and verify the domain automatically (may take a few minutes due to DNS propagation).
+4. Configure the site
+   - Mark the domain as the production domain in Vercel or use it alongside the default vercel.app domain.
+
+B — You only have a github.io domain (username.github.io or project.github.io)
+- You cannot point `username.github.io` or `project.github.io` to Vercel because those `github.io` hostnames are controlled by GitHub. Instead:
+  - Option 1 (recommended): add a custom domain you own (example.com) and use `app.example.com` for Vercel while keeping your GitHub Pages site on the `github.io` domain.
+  - Option 2: move the content from GitHub Pages to Vercel (use Vercel as your host instead of GitHub Pages) and then you can remove the GitHub Pages usage for that repo.
+
+C — If you used GitHub's DNS to manage the custom domain
+- If the domain (example.com) is configured in GitHub Pages (via an A record / CNAME at the registrar), you must update DNS at the registrar to add the CNAME/A records Vercel requires for the subdomain. Do NOT leave DNS managed solely via GitHub Pages settings — you need control at the DNS provider to point a subdomain to Vercel.
+
+D — Vercel CLI alternative
+- You can add domains using the Vercel CLI as well (after login):
+
+```bash
+# add domain to project
+npx vercel domains add <project> app.example.com
+```
+
+- Vercel will return the DNS target to configure. Create the required CNAME/A/ALIAS record at your DNS provider.
+
+E — TTL and propagation
+- DNS TTLs may delay verification (usually minutes to an hour). Wait and retry verification in the Vercel dashboard.
+
+F — Troubleshooting
+- If Vercel shows that DNS records are missing or not verified:
+  - Confirm you created a CNAME for the subdomain name (not an A record) unless Vercel asked for apex A records.
+  - Use `dig` or `nslookup` to inspect the CNAME record.
+  - If your DNS provider does not support CNAME for the apex, use ALIAS/ANAME if supported, or point an A record to Vercel's IPs (see Vercel docs).
+
+G — Security and HTTPS
+- Once Vercel verifies the domain it will provision HTTPS automatically (Let's Encrypt). Ensure there is no conflicting CAA record that blocks Let's Encrypt.
 
 ---
 

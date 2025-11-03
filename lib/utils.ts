@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import { randomBytes } from 'crypto';
 import slugify from 'slugify';
 
 export function salaryPerSecond(annual: number) {
@@ -20,7 +20,6 @@ function base62(buffer: Buffer) {
 
 export function safeSlug(nameA: string, nameB: string) {
   const canonical = slugify(`${nameA}-vs-${nameB}`, { lower: true, strict: true }).slice(0, 50);
-  const suffix = base62(crypto.randomBytes(4)).slice(0, 6);
+  const suffix = base62(randomBytes(4)).slice(0, 6);
   return `${canonical}-${suffix}`;
 }
-

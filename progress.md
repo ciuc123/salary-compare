@@ -1,0 +1,71 @@
+# Progress
+
+This file tracks all tasks for the "growing salary" viral mechanic project. I'll update it on every change.
+
+## Tasks (initial)
+
+- [x] Scaffold Next.js TypeScript project (pages router) — created package.json, tsconfig, next.config
+- [x] Add Prisma + SQLite schema and Prisma client helper
+- [x] Implement API: `POST /api/create` to create a comparison
+- [x] Implement API: `GET /api/compare/[slug]` to fetch comparison
+- [x] Implement frontend: `/` form to create comparisons
+- [x] Implement frontend: `/compare/[slug]` dynamic page with animated counters
+- [x] Add safe slug generator and utilities (slugify + secure suffix)
+- [x] Add DiceBear initials avatar integration for thumbnails / OGs (note: DNS placeholder added to README)
+- [x] Add `CARBON_README.md` explaining Carbon Ads integration
+- [x] Add main `README.md` with run & Vercel notes (SQLite dev -> Supabase for prod)
+- [x] Add basic tests for salary calculation and slug generation (vitest)
+- [x] Run `npm install`, `prisma generate`, and `prisma migrate` to initialize DB
+- [x] Manual smoke test: start dev server and open a created slug page
+
+## Notes
+- DB: SQLite for dev. Will include instructions to switch to Postgres/Supabase for Vercel production.
+- The compare page currently fetches data client-side; it renders a loading shell server-side and hydrates on the client. This is intentional for MVP simplicity.
+- Next steps: add OG image endpoint, integrate DiceBear avatars into the compare page, and wire Carbon Ads component into the UI.
+- Progress updates: I'll mark items done as I implement and validate them.
+
+## Next tasks (detailed)
+
+These are the next development tasks I will implement and keep updated here. I'll follow this exact checklist and mark items as done as I finish them.
+
+- Client-side rendering and counters
+  - [ ] Ensure the `/compare/[slug]` page's counters are generated only on the client (no SSR of dynamic counters).
+  - [ ] Add tests or a runtime guard to prevent server-side calculation of the animated values.
+
+- OG image & sharing
+  - [ ] Add an `/api/og/[slug]` endpoint (optional for MVP) to generate share images on demand using `@vercel/og` or Satori.
+  - [ ] Decide whether to generate OG at create-time or on first request; implement caching strategy.
+  - [ ] Wire `og:image` meta tags on share pages to point to the generated OG endpoint.
+
+- DiceBear avatars and optional headshot uploads
+  - [ ] Integrate DiceBear initials avatars into the compare page (display generated avatar URLs for each person).
+  - [ ] Add a simple preview on the create form showing the DiceBear avatars for Person A and Person B.
+  - [ ] Add optional file-upload UI to the create form so a user can upload a headshot for Person A or Person B.
+  - [ ] Backend: plan for secure storage of uploaded headshots (Supabase Storage, S3, or similar). Add server-side validations (file type, size limit).
+  - [ ] Add handling so if a user uploads a headshot, use that image in place of the DiceBear avatar and include it in OG generation.
+
+- Carbon Ads integration and ad UX
+  - [ ] Implement a `components/CarbonAd.tsx` component that injects the Carbon script client-side (see `CARBON_README.md`).
+  - [ ] Add the Carbon ad component to the compare page (between/below counters).
+  - [ ] Add optional auto-refresh logic (unmount/remount) or controlled iframe reload every X seconds.
+  - [ ] Add a small UI behavior: briefly emphasize or overlay the ad when one person overtakes the other (A/B moment) — ensure compliance with Carbon policies.
+  - [ ] Add privacy/GDPR note and test the page with common ad-blockers to validate fallback UX.
+
+- Uploads, storage & Vercel notes
+  - [ ] Implement server-side support and documentation for headshot uploads (recommendation: Supabase Storage or S3). Do not attempt to write to SQLite for file storage on Vercel.
+  - [ ] Add tests and validation for file uploads (MIME types, size <= 3MB default).
+  - [ ] Add instructions in `VERCEL_NOTES.md` (created) for production DB & storage configuration.
+
+- Production readiness & deployment
+  - [ ] Add environment-driven Prisma configuration so switching from SQLite (dev) to Postgres (prod) is straightforward (env var: `DATABASE_URL`).
+  - [ ] Add a short Vercel deployment checklist (env vars, migrations, storage) in `VERCEL_NOTES.md`.
+  - [ ] Add simple rate-limiting / abuse protection notes for the create API (prevent spam).
+
+- Analytics & monetization hooks
+  - [ ] Add a simple time-on-page beacon (POST to `/api/analytics` on unload or periodic ping) to measure session length.
+  - [ ] Add CTA under the counters for "Compare yours →" and an optional email capture flow (deferred work).
+
+- Misc / housekeeping
+  - [ ] Improve styling and mobile responsive layout for the compare page.
+  - [ ] Add more unit & integration tests (API create + fetch + slug uniqueness).
+  - [ ] Add README docs that show how to switch to Supabase/Postgres and enable headshot uploads.

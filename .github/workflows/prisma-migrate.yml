@@ -51,8 +51,9 @@ jobs:
             exit 1
           fi
 
-          # run migrate deploy against the chosen DB URL
-          npx prisma migrate deploy --schema=prisma/schema.prisma --preview-feature --url="${MIGRATE_DB_URL}"
+          # Set the DATABASE_URL env var for the migrate command (Prisma doesn't accept --url here)
+          export DATABASE_URL="${MIGRATE_DB_URL}"
+          npx prisma migrate deploy --schema=prisma/schema.prisma
 
       - name: Verify migration (optional)
         if: success()
@@ -66,4 +67,5 @@ jobs:
             export CHECK_DB_URL="${DATABASE_URL}"
           fi
           echo "Listing tables to verify migration applied..."
-          npx prisma db execute --url "$CHECK_DB_URL" --raw "SELECT table_name FROM information_schema.tables WHERE table_schema='public' LIMIT 20;"
+          export DATABASE_URL="$CHECK_DB_URL"
+          npx prisma db execute --raw "SELECT table_name FROM information_schema.tables WHERE table_schema='public' LIMIT 20;"

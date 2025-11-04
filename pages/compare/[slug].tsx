@@ -67,6 +67,29 @@ export default function ComparePage({ initialData, baseUrl }: { initialData?: an
       const b = baseBRef.current + (data?.perSecB || 0) * since;
       setDisplayA(a);
       setDisplayB(b);
+
+      // leader change detection for ad highlight (dispatch custom event on ad container)
+      try {
+        const prev = (window as any)._prevLeader ?? null;
+        let newLeader: 'A' | 'B' | null = null;
+        if (a > b) newLeader = 'A';
+        else if (b > a) newLeader = 'B';
+        if (prev && newLeader && prev !== newLeader) {
+          // dispatch event on the ad container element so AdSense listens and highlights
+          const el = document.getElementById('adsense-container');
+          if (el) {
+            el.dispatchEvent(new CustomEvent('ad-highlight'));
+          } else {
+            // fallback: dispatch on document for any listeners
+            document.dispatchEvent(new CustomEvent('ad-highlight'));
+          }
+        }
+        // store globally for the short-lived page to avoid extra refs
+        (window as any)._prevLeader = newLeader;
+      } catch (e) {
+        // ignore DOM errors
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     }
     rafRef.current = requestAnimationFrame(tick);

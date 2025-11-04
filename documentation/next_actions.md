@@ -41,9 +41,22 @@ Notes
 These are the recommended next items (short-term and medium-term). Pick one to start and I will implement and test it, then update this file.
 
 1) Ad UX & resilience (high priority)
-   - [ ] Add ad-block / fallback UX for `AdSense` (show CTA or placeholder when script is blocked or ads are not served).
-   - [ ] Implement optional "ad highlight on overtake" behavior (brief visual emphasis on the ad when one counter overtakes the other). Ensure it is non-intrusive and policy-compliant.
-   - [ ] Add small analytics ping when ad container mounts/unmounts (to count impressions locally).
+   - [x] Implement client-side AdSense component (`components/AdSense.tsx`) with:
+     - ad script injection (client-only)
+     - ad-block detection and fallback CTA
+     - impression beacon (POST `/api/analytics`) — lightweight endpoint added
+     - `testMode` support for development
+   - [x] Add server endpoint `pages/api/analytics.ts` to receive impression beacons (logs for now)
+   - [x] Add unit test `test/carbon.test.ts` (renamed to assert AdSense fallback behaviour) — passing in local test run
+   - Status: In Progress — the basic client UX + fallback + beacon are implemented and tested locally (see tests). The following subtasks remain:
+     - [ ] Add ad-block detection heuristic improvements (visibility observer, stronger heuristics)
+     - [ ] Implement "ad highlight on overtake" behaviour (brief, policy-safe visual emphasis) — design + A/B test
+     - [ ] Store impressions server-side (DB table) and add a small admin view to inspect counts
+     - [ ] Add ad-block CTA experiment (capture email for sponsors when blocked)
+     - [ ] Wire `NEXT_PUBLIC_ADSENSE_CLIENT` / `NEXT_PUBLIC_ADSENSE_SLOT` in Vercel env and verify ads in a preview deploy
+
+   Notes:
+   - Local tests now include the AdSense component test and pass in our environment. Some test suites fail locally when `DATABASE_URL` is not set (Prisma expects a Postgres URL). See the "Test & CI notes" section below for how to run tests locally and in CI.
 
 2) OG image improvements & caching
    - [ ] Allow `generateOgSvg` to include DiceBear avatars or uploaded headshots when available.
@@ -197,3 +210,11 @@ G — Security and HTTPS
 I'll pause here so you can commit the repository changes (I left the working tree with the implemented features and tests). After you commit, tell me which of the Desired next actions you'd like me to implement first and I'll pick it up, implement it, and add tests.
 
 Please commit now and confirm when you're ready for me to continue.
+
+## Test & CI notes
+
+- Some unit/integration tests exercise Prisma and require `DATABASE_URL` to be set. If you run `npx vitest` locally and see Prisma-related errors (`Environment variable not found: DATABASE_URL`), either:
+  - Set `DATABASE_URL` to a local Postgres (Docker) or a Supabase dev DB and run `npx prisma migrate deploy` (or create migrations locally with `npx prisma migrate dev`), or
+  - Skip DB tests temporarily by setting an env guard in the test runner or mocking Prisma.
+
+- CI: we added `.github/workflows/prisma-migrate.yml` to deploy migrations in CI; ensure `POSTGRES_URL_NON_POOLING` or `DATABASE_URL` secrets are present (use non-pooling URL for migrations) before running the migration workflow.
